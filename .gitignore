@@ -1,0 +1,12 @@
+.ssh/
+*.netbox
+
+old/
+
+.idea/
+.vscode/
+__pycache__/
+*.py[cod]
+.venv/
+venv/
+env/

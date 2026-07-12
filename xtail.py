@@ -5,7 +5,7 @@ import sys
 import time  #, sys, os
 from datetime import datetime
 
-__version__ = '4.15.2'
+__version__ = '5.1.6'
 
 sys.path.insert(1, '/home/oracle/Lib')
 
@@ -30,8 +30,24 @@ def with_colors(s, c):
 
 parser = argparse.ArgumentParser() #(description="Печатает последние строки файла или отбор из БД на стандартный вывод.")
 
-parser.add_argument("-c", "--colors", help="JSON-строка описания цвета указанных слов")
-parser.add_argument("-f", "--filecolors", help="JSON-файл с описанием цвета указанных слов. Если -c, то -f не учитывается")
+
+parser.add_argument("file", nargs="?", help="Имя текстового файла")
+
+# Группа 1: Источник данных (обязательно что-то одно)
+# взаимоисключающие аргументы: либо имя файла, либо SQL-запрос, либо файл с SQL-запросом
+source_group = parser.add_mutually_exclusive_group(required=False)
+
+source_group.add_argument("-q", "--query", help="SQL-запрос")
+source_group.add_argument("-qf", "--queryfile", help="Файл с SQL-запросом")
+
+# Группа 2: Настройка цветов (необязательная)
+# взаимоисключающие аргументы: либо имя файла, либо SQL-запрос, либо файл с SQL-запросом
+color_group = parser.add_mutually_exclusive_group(required=False)
+
+color_group.add_argument("-c", "--colors", help="JSON-строка описания цвета")
+color_group.add_argument("-fc", "--filecolors", help="JSON-файл с описанием цвета")
+
+# Остальные аргументы
 parser.add_argument("-n", "--lines", help="выводить последние n строк (только для текстового файла)", default=10, type=int)
 parser.add_argument("-o", "--oracle", help="Сервер БД Oracle", action="store_true")
 parser.add_argument("-m", "--mysql", help="Сервер БД MySQL", action="store_true")
@@ -42,7 +58,6 @@ parser.add_argument("-p", "--password", help="пароль пользовате�
 parser.add_argument("-w", "--wait", help="ждать доступность БД после потери коннекта", action="store_true")
 parser.add_argument("-i", "--interval", help="интервал просмотра в секундах", default=1, type=float)
 parser.add_argument("-v", "--verbose", help="Подробный вывод", action="store_true", default=False)
-parser.add_argument("file", help="имя текстового файла или select из БД для отслеживания изменений.")
 
 if len(sys.argv) == 1:
     parser.print_help(sys.stderr)
@@ -50,33 +65,40 @@ if len(sys.argv) == 1:
 
 args = parser.parse_args()
 
-colors = json.loads(args.colors.replace("'", '"')) if args.colors else None
-
-if args.filecolors and not colors:
+if args.colors:
+    # используем строку
+    colors = json.loads(args.colors.replace("'", '"')) if args.colors else None
+elif args.filecolors:
+    # читаем файл с описанием цвета
     with open(args.filecolors, "r", encoding="utf-8") as fn:
         colors = json.load(fn)
-elif colors and args.filecolors and args.verbose:
-    print(args.filecolors, 'ignored.')
+else:
+    colors = None
 
 listening = True
 
 if args.database:
     connection = False
     if not (args.login and args.password):
-        print("#12 Для БД {} надо указывать логин (-l) и пароль (-p)".format(args.database))
-        sys.exit(1)
+        parser.error("#12 Для БД {} надо указывать логин (-l) и пароль (-p)".format(args.database))
 
     if args.oracle or not args.mysql:
         # c:\Python3\python.exe c:\Tools\xtail.py -i 10 -b rplus -l python -p python "select rpad(l.src,5), to_char(l.date_form,'dd.mm.yyyy hh24:mi'), decode(code,'WARN','#6 ','ERROR','#13 ','FATAL','#12 ','#15 ')||rpad(code,6)||'#7 ', rpad(l.section,30), decode(substr(l.answer_text,1,1),'!', '#12 ','?', '#14 ','-', '#2 ',null, '', '#10 ')||substr(text,1,50)||'#7 ' from view_log l where l.date_form>least(trunc(sysdate), sysdate-1/24) and code in ('WARN', 'ERROR', 'FATAL') order by cnt"
+        args.oracle = True
         import cx_Oracle
 
         row_hash = []
 
-        if len(args.file) > 4 and args.file[-4:].lower() == '.sql':  # select может находиться в файле *.sql
-
+        if args.query:
+            select = args.query
+        elif args.queryfile:
+            if not os.path.exists(args.queryfile):
+                parser.error("#12 Не существует файл #15 {}".format(args.queryfile))
+            with open(args.queryfile, "r") as f:
+                select = f.read()
+        elif len(args.file) > 4 and args.file[-4:].lower() == '.sql':  # select может находиться в файле *.sql
             if not os.path.exists(args.file):
-                print("#12 Не существует файл #15 {}".format(args.file))
-                sys.exit(1)
+                parser.error("#12 Не существует файл #15 {}".format(args.file))
 
             with open(args.file, "r") as f:
                 select = f.read()
@@ -135,8 +157,7 @@ if args.database:
                         sleep(args.interval*10)
                     connectionStatus = 2
                 else:
-                    print("Ошибка подключения к БД #15 {}#7 \n{}\n{}".format(args.database, e.args[0], select))
-                    sys.exit(1)
+                    parser.error("Ошибка подключения к БД #15 {}#7 \n{}\n{}".format(args.database, e.args[0], select))
 
                 prnt("connectionStatus: "+str(connectionStatus))
 
@@ -164,8 +185,7 @@ if args.database:
         if len(args.file) > 4 and args.file[-4:].lower() == '.sql':  # select может находиться в файле *.sql
 
             if not os.path.exists(args.file):
-                print("#12 Не существует файл #15 {}".format(args.file))
-                sys.exit(1)
+                parser.error("#12 Не существует файл #15 {}".format(args.file))
 
             with open(args.file, "r") as f:
                 select = f.read()
@@ -210,8 +230,7 @@ if args.database:
                         listening = False
 
         except Exception as e:
-            print("Ошибка подключения к БД #15 {} на {}, логин {}, пароль {}#7 \n{}".format(args.database, args.host, args.login, args.password, e.args[0]))
-            sys.exit(1)
+            parser.error("Ошибка подключения к БД #15 {} на {}, логин {}, пароль {}#7 \n{}".format(args.database, args.host, args.login, args.password, e.args[0]))
 
         finally:
             if connection:

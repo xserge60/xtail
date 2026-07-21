@@ -5,7 +5,7 @@ import sys
 import time  #, sys, os
 from datetime import datetime
 
-__version__ = '5.1.6'
+__version__ = '5.1.13'
 
 sys.path.insert(1, '/home/oracle/Lib')
 
@@ -85,7 +85,7 @@ if args.database:
     if args.oracle or not args.mysql:
         # c:\Python3\python.exe c:\Tools\xtail.py -i 10 -b rplus -l python -p python "select rpad(l.src,5), to_char(l.date_form,'dd.mm.yyyy hh24:mi'), decode(code,'WARN','#6 ','ERROR','#13 ','FATAL','#12 ','#15 ')||rpad(code,6)||'#7 ', rpad(l.section,30), decode(substr(l.answer_text,1,1),'!', '#12 ','?', '#14 ','-', '#2 ',null, '', '#10 ')||substr(text,1,50)||'#7 ' from view_log l where l.date_form>least(trunc(sysdate), sysdate-1/24) and code in ('WARN', 'ERROR', 'FATAL') order by cnt"
         args.oracle = True
-        import cx_Oracle
+        import oracledb
 
         row_hash = []
 
@@ -114,7 +114,8 @@ if args.database:
             try:
                 # отслеживание таблицы БД Oracle
                 prnt("connectionStatus: "+str(connectionStatus))
-                connection = cx_Oracle.Connection(args.login, args.password, args.database)
+                oracledb.init_oracle_client(lib_dir="/usr/lib/oracle/12.2/client64/lib")
+                connection = oracledb.connect(user=args.login, password=args.password, dsn=args.database)
                 cursor = connection.cursor()
                 cursor.execute(select)  # тест соединения
                 prnt("connectionStatus: "+str(connectionStatus))

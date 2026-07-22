@@ -1,0 +1,7 @@
+{
+    "user": "PYTHON",
+    "password": "PYTHON",
+    "dsn": "172.19.11.64:1521/rplus.peoplenet.ua",
+    "libdir": "C:\\Oracle12\\product\\12.2.0\\client_1\\instantclient",
+    "chat_id": 340286378
+}

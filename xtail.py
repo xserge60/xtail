@@ -5,20 +5,18 @@ import sys
 import time  #, sys, os
 from datetime import datetime
 
-__version__ = '5.1.10'
+__version__ = '5.2.3'
 
 sys.path.insert(1, '/home/oracle/Lib')
 
 from tools import *
 value["DEBUG"] = False
 
-print('Python version '+sys.version.split(' ')[0])
-
 import json
 import argparse
 
-vers = 'Версия #15 {}#7  от {}'.format(__version__, datetime.fromtimestamp(os.path.getmtime(os.path.join(os.path.abspath(os.path.dirname(__file__)), os.path.basename(sys.argv[0])))).strftime('%d.%m.%Y %H:%M'))
-print("#15 XTAIL#7  - Печатает файл или таблицу БД на стандартный вывод. {}".format(vers))
+# vers = 'Версия #15 {}#7  от {}'.format(__version__, datetime.fromtimestamp(os.path.getmtime(os.path.join(os.path.abspath(os.path.dirname(__file__)), os.path.basename(sys.argv[0])))).strftime('%d.%m.%Y %H:%M'))
+print("#15 Печатает файл или таблицу БД на стандартный вывод.#7 ")
 
 prnt("№12 Отладочный режим.")
 
@@ -29,7 +27,6 @@ def with_colors(s, c):
     return s
 
 parser = argparse.ArgumentParser() #(description="Печатает последние строки файла или отбор из БД на стандартный вывод.")
-
 
 parser.add_argument("file", nargs="?", help="Имя текстового файла")
 
@@ -65,6 +62,12 @@ if len(sys.argv) == 1:
 
 args = parser.parse_args()
 
+if not args.database:
+    # Формируем словарь версий для отображения
+    versions = get_versions_dict()
+    # Выводим таблицу версий
+    print(format_versions_table(versions))
+
 if args.colors:
     # используем строку
     colors = json.loads(args.colors.replace("'", '"')) if args.colors else None
@@ -87,8 +90,13 @@ if args.database:
         args.oracle = True
         import oracledb
         oracledb.init_oracle_client()
-        print("python-oracledb:", oracledb.__version__)
-        print(f"Oracle Client: {oracledb.clientversion()[0]}.{oracledb.clientversion()[1]}")
+
+        # Формируем словарь версий для отображения
+        versions = get_versions_dict()
+        # Добавляем версию Oracle Client в словарь версий
+        versions["Oracle Client"] = '.'.join(str(x) for x in oracledb.clientversion()[0:3])
+        # Выводим таблицу версий
+        print(format_versions_table(versions))
 
         row_hash = []
 
@@ -183,7 +191,12 @@ if args.database:
 
     elif args.mysql:
         # c:\Python3\python.exe xtail.py -i 2 -m -s 192.168.1.202 -b homedb -l pi -p mnp5 "SELECT date_format(h.date_form,'%d.%m.%Y %H:%i:%s') AS `date_form`, concat(IF(h.status>0 AND h.serial != '310208a7' AND if_signaling(h.cnt)=1, '#12 ', ''), IF(h.status=0 AND h.serial  = '310208a7', '#14 ', IF(h.serial = '310208a7', '#10 ', '')), rpad(`s`.`name`, 12)) AS `name`, `n`.`description` AS `description` FROM ((`sensors_need` `n` JOIN `bl_s1_sensors` `s`) JOIN `sensors_hist` `h`) WHERE `s`.`serial` = `n`.`serial` AND `h`.`serial` = `s`.`serial` AND `h`.`status` = `n`.`status` AND h.date_form > CURRENT_DATE() ORDER BY `h`.`cnt`"
-        import MySQLdb
+        import mysql.connector as mysql
+
+        # Формируем словарь версий для отображения
+        versions = get_versions_dict()
+        # Выводим таблицу версий
+        print(format_versions_table(versions))
 
         row_hash = []
 
@@ -199,12 +212,13 @@ if args.database:
 
         try:
             # отслеживание таблицы БД Oracle
-            connection = MySQLdb.connect(host=args.host,
-                                         user=args.login,
-                                         passwd=args.password,
-                                         db=args.database,
-                                         charset='utf8',
-                                         autocommit=True)
+            connection = mysql.connect(
+                            host=args.host,
+                            user=args.login,
+                            password=args.password,
+                            database=args.database,
+                            charset='utf8',
+                            autocommit=True)
 
             if args.verbose:
                 print("Успешно подключено к", args.database)

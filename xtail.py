@@ -87,7 +87,8 @@ if args.database:
         args.oracle = True
         import oracledb
         oracledb.init_oracle_client()
-        print(f"Orecle client version: {oracledb.version}")
+        print("python-oracledb:", oracledb.__version__)
+        print(f"Oracle Client: {oracledb.clientversion()[0]}.{oracledb.clientversion()[1]}")
 
         row_hash = []
 

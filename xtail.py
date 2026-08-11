@@ -5,7 +5,7 @@ import sys
 import time  #, sys, os
 from datetime import datetime
 
-__version__ = '5.2.3'
+__version__ = '5.2.4'
 
 sys.path.insert(1, '/home/oracle/Lib')
 
@@ -191,7 +191,7 @@ if args.database:
 
     elif args.mysql:
         # c:\Python3\python.exe xtail.py -i 2 -m -s 192.168.1.202 -b homedb -l pi -p mnp5 "SELECT date_format(h.date_form,'%d.%m.%Y %H:%i:%s') AS `date_form`, concat(IF(h.status>0 AND h.serial != '310208a7' AND if_signaling(h.cnt)=1, '#12 ', ''), IF(h.status=0 AND h.serial  = '310208a7', '#14 ', IF(h.serial = '310208a7', '#10 ', '')), rpad(`s`.`name`, 12)) AS `name`, `n`.`description` AS `description` FROM ((`sensors_need` `n` JOIN `bl_s1_sensors` `s`) JOIN `sensors_hist` `h`) WHERE `s`.`serial` = `n`.`serial` AND `h`.`serial` = `s`.`serial` AND `h`.`status` = `n`.`status` AND h.date_form > CURRENT_DATE() ORDER BY `h`.`cnt`"
-        import mysql.connector as mysql
+        from mysql import connector
 
         # Формируем словарь версий для отображения
         versions = get_versions_dict()
@@ -212,7 +212,7 @@ if args.database:
 
         try:
             # отслеживание таблицы БД Oracle
-            connection = mysql.connect(
+            connection = connector.connect(
                             host=args.host,
                             user=args.login,
                             password=args.password,

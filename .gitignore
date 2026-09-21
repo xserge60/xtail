@@ -1,6 +1,7 @@
 .ssh/
 *.netbox
 *.txt
+temp_sync_log.txt
 
 old/
 

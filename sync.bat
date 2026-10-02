@@ -24,3 +24,6 @@ git commit -m "%commitMsg%"
 git push -q
 
 echo --- Синхронизация завершена ---
+
+echo Выполняем оптимизацию базы git
+git gc --prune=now

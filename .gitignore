@@ -2,6 +2,7 @@
 *.netbox
 *.txt
 temp_sync_log.txt
+*.code-workspace
 
 old/
 
